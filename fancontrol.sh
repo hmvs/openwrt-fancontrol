@@ -154,7 +154,7 @@ check_wifi_temp() {
 
 check_ram_temp() {
     if [ $VERBOSE == 1 ] ; then
-        echo "Checking WIFI Temp ${WIFI_TEMP}"
+        echo "Checking RAM Temp ${RAM_TEMP}"
     fi
 
     if [ $RAM_TEMP -ge 70 ]; then
