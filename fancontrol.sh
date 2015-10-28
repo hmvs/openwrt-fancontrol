@@ -7,7 +7,7 @@ EMERGENCY_COOLDOWN_DURATION=30
 SLEEP_DURATION=5
 CPU_TEMP_CHECK=20
 DEFAULT_SPEED=100
-EMERGENCY_COOLDOWN_TEMP_CHANGE=3                         
+EMERGENCY_COOLDOWN_TEMP_CHANGE=6                         
 
 # DON'T MESS WITH THESE
 VERBOSE=0
@@ -121,22 +121,51 @@ check_cpu_temp() {
         echo "Checking CPU Temp ${CPU_TEMP}"
     fi
 
-    if [ $CPU_TEMP -ge 70 ]; then
+    if [ $CPU_TEMP -ge 85 ]; then
         set_fan CPU 255
-    elif [ $(float_ge $CPU_TEMP 67.5) == 1 ]; then
+    elif [ $(float_ge $CPU_TEMP 80) == 1 ]; then
         set_fan CPU 223
-    elif [ $CPU_TEMP -ge 65 ]; then
+    elif [ $CPU_TEMP -ge 78 ]; then
         set_fan CPU 191
-    elif [ $(float_ge $CPU_TEMP 62.5) == 1 ]; then
+    elif [ $(float_ge $CPU_TEMP 78) == 1 ]; then
         set_fan CPU 159
-    elif [ $CPU_TEMP -ge 60 ]; then
+    elif [ $CPU_TEMP -ge 75 ]; then
         set_fan CPU 127
-    elif [ $CPU_TEMP -ge 55 ]; then
+    elif [ $CPU_TEMP -ge 70 ]; then
         set_fan CPU 95
-    elif [ $CPU_TEMP -ge 50 ]; then
+    elif [ $CPU_TEMP -ge 60 ]; then
         set_fan CPU 63
     fi
 }
+
+check_wifi_temp() {
+    if [ $VERBOSE == 1 ] ; then
+        echo "Checking WIFI Temp ${WIFI_TEMP}"
+    fi
+
+    if [ $WIFI_TEMP -ge 95 ]; then
+        set_fan WIFI 255
+    elif [ $(float_ge $WIFI_TEMP 85) == 1 ]; then
+        set_fan WIFI 150
+    elif [ $WIFI_TEMP -ge 78 ]; then
+        set_fan WIFI 110
+    fi
+}
+
+check_ram_temp() {
+    if [ $VERBOSE == 1 ] ; then
+        echo "Checking WIFI Temp ${WIFI_TEMP}"
+    fi
+
+    if [ $RAM_TEMP -ge 70 ]; then
+        set_fan RAM 255
+    elif [ $(float_ge $RAM_TEMP 65) == 1 ]; then
+        set_fan RAM 150
+    elif [ $RAM_TEMP -ge 55 ]; then
+        set_fan RAM 110
+    fi
+}
+
 
 # start the fan initially to $DEFAULT_SPEED
 set_fan START $DEFAULT_SPEED
@@ -198,6 +227,8 @@ while true ; do
     # check the raw CPU temps every $CPU_TEMP_CHECK seconds...
     if [ $(( $ELAPSED_TIME % $CPU_TEMP_CHECK )) == 0 ]; then
         check_cpu_temp
+        check_ram_temp
+        check_wifi_temp
     fi
 
     # wait $SLEEP_DURATION seconds and do this again
