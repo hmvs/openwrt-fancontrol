@@ -6,15 +6,16 @@
 EMERGENCY_COOLDOWN_DURATION=30
 SLEEP_DURATION=5
 CPU_TEMP_CHECK=20
-DEFAULT_SPEED=100
-EMERGENCY_COOLDOWN_TEMP_CHANGE=6                         
+DEFAULT_SPEED=0
+EMERGENCY_COOLDOWN_TEMP_CHANGE=6
+LAST_FAN_SPEED_REASON="START"
 
 # DON'T MESS WITH THESE
 VERBOSE=0
 LAST_FAN_SPEED=$DEFAULT_SPEED
-EMERGENCY_COOLDOWN=0                
-EMERGENCY_COOLDOWN_TIMER=0                         
-ELAPSED_TIME=0 
+EMERGENCY_COOLDOWN=0
+EMERGENCY_COOLDOWN_TIMER=0
+ELAPSED_TIME=0
 CPU_TEMP=0
 RAM_TEMP=0
 WIFI_TEMP=0
@@ -32,24 +33,29 @@ elif [ -d /sys/devices/platform/pwm_fan ]; then
 else
     exit 0
 fi
+#FAN_CTRL=/home/hmvs/Dev/openwrt-fancontrol/fanctrl
 
 # retrieve new cpu, ram, and wifi temps
 get_temps() {
-    CPU_TEMP=`cut -c1-2 /sys/class/hwmon/hwmon2/temp1_input` 
-    RAM_TEMP=`cut -c1-2 /sys/class/hwmon/hwmon1/temp1_input` 
+    CPU_TEMP=`cut -c1-2 /sys/class/hwmon/hwmon2/temp1_input`
+    RAM_TEMP=`cut -c1-2 /sys/class/hwmon/hwmon1/temp1_input`
     WIFI_TEMP=`cut -c1-2 /sys/class/hwmon/hwmon1/temp2_input`
+    #CPU_TEMP=`cut -c1-2 /home/hmvs/Dev/openwrt-fancontrol/cputemp`
+    #RAM_TEMP=`cut -c1-2 /home/hmvs/Dev/openwrt-fancontrol/ramtemp`
+    #WIFI_TEMP=`cut -c1-2 /home/hmvs/Dev/openwrt-fancontrol/wifitemp`
 }
 
 # use this to make setting the fan a bit easier
 #     set_fan WHAT VALUE
 set_fan() {
+    FAN_SPEED_REASON=$1
     LAST_FAN_SPEED=`cat ${FAN_CTRL}`
-
-    if [ $LAST_FAN_SPEED -ne $2 ]; then
+    if [ $2 -ge $LAST_FAN_SPEED ] || ([ $2 -le $LAST_FAN_SPEED ] && [ $FAN_SPEED_REASON == $LAST_FAN_SPEED_REASON ]); then
         if [ $VERBOSE == 1 ]; then
-            echo "setting fan to ${2} (${1}) ${FAN_CTRL}"
+            echo "setting fan to ${2} (${FAN_SPEED_REASON}) ${FAN_CTRL}"
         fi
 
+        LAST_FAN_SPEED_REASON=$FAN_SPEED_REASON
         # write the new speed to the fan controller
         echo $2 > ${FAN_CTRL}
     else
@@ -81,7 +87,7 @@ start_emergency_cooldown() {
     EMERGENCY_COOLDOWN_TIMER=$EMERGENCY_COOLDOWN_DURATION
 
     set_fan EMERGENCY 255
-}              
+}
 
 # check for load averages above 1.0
 check_load() {
@@ -102,10 +108,10 @@ check_load() {
 
 # makes sure that the temperatures haven't fluctuated by more than 1.5 degrees
 check_temp_change() {
-    TEMP_CHANGE=$(($3 - $2));
+    TEMP_CHANGE=$(($2 - $3));
 
     if [ $VERBOSE == 1 ]; then
-        echo "${1} original temp: ${2} | new temp: ${3} | change: ${TEMP_CHANGE}"
+        echo "${1} original temp: ${3} | new temp: ${2} | change: ${TEMP_CHANGE}"
     fi
 
     if [ $(float_ge $TEMP_CHANGE $EMERGENCY_COOLDOWN_TEMP_CHANGE) == 1 ]; then
@@ -121,21 +127,22 @@ check_cpu_temp() {
         echo "Checking CPU Temp ${CPU_TEMP}"
     fi
 
-    if [ $CPU_TEMP -ge 85 ]; then
+    if [ $CPU_TEMP -ge 86 ]; then
         set_fan CPU 255
-    elif [ $(float_ge $CPU_TEMP 80) == 1 ]; then
+    elif [ $CPU_TEMP -ge 84 ]; then
         set_fan CPU 223
-    elif [ $CPU_TEMP -ge 78 ]; then
+    elif [ $CPU_TEMP -ge 82 ]; then
         set_fan CPU 191
-    elif [ $(float_ge $CPU_TEMP 78) == 1 ]; then
-        set_fan CPU 159
-    elif [ $CPU_TEMP -ge 75 ]; then
-        set_fan CPU 127
-    elif [ $CPU_TEMP -ge 70 ]; then
-        set_fan CPU 95
-    elif [ $CPU_TEMP -ge 60 ]; then
-        set_fan CPU 63
+    elif [  $CPU_TEMP -ge 78 ]; then
+        set_fan CPU 130
+    elif [ $CPU_TEMP -ge 74 ]; then
+        set_fan CPU 105
+    elif [ $CPU_TEMP -ge 72 ]; then
+          set_fan CPU 100
+    else
+          set_fan CPU $DEFAULT_SPEED
     fi
+
 }
 
 check_wifi_temp() {
@@ -145,10 +152,14 @@ check_wifi_temp() {
 
     if [ $WIFI_TEMP -ge 95 ]; then
         set_fan WIFI 255
-    elif [ $(float_ge $WIFI_TEMP 85) == 1 ]; then
+    elif [ $WIFI_TEMP -ge 85 ]; then
         set_fan WIFI 150
     elif [ $WIFI_TEMP -ge 78 ]; then
         set_fan WIFI 110
+    elif [ $WIFI_TEMP -ge 74 ]; then
+        set_fan WIFI 100
+    else
+        set_fan WIFI $DEFAULT_SPEED
     fi
 }
 
@@ -159,10 +170,12 @@ check_ram_temp() {
 
     if [ $RAM_TEMP -ge 70 ]; then
         set_fan RAM 255
-    elif [ $(float_ge $RAM_TEMP 65) == 1 ]; then
-        set_fan RAM 150
+    elif [ $RAM_TEMP -ge 65 ]; then
+        set_fan RAM 130
     elif [ $RAM_TEMP -ge 55 ]; then
-        set_fan RAM 110
+        set_fan RAM 100
+    else
+        set_fan RAM $DEFAULT_SPEED
     fi
 }
 
@@ -188,9 +201,9 @@ while true ; do
         # do we still need to be in cooldown?
         if [ $EMERGENCY_COOLDOWN_TIMER -le 0 ]; then
 
-            set_fan LAST $LAST_FAN_SPEED                              
+            set_fan EMERGENCY $LAST_FAN_SPEED
 
-            EMERGENCY_COOLDOWN=0                                      
+            EMERGENCY_COOLDOWN=0
 
             if [ $VERBOSE == 1 ]; then
                 echo "Exiting Emergency Cooldown Mode!"
@@ -208,13 +221,13 @@ while true ; do
         fi
     fi
 
-    # save the previous temperatures                                    
-    LAST_CPU_TEMP=$CPU_TEMP                                            
-    LAST_RAM_TEMP=$RAM_TEMP                                                      
-    LAST_WIFI_TEMP=$WIFI_TEMP                                                 
+    # save the previous temperatures
+    LAST_CPU_TEMP=$CPU_TEMP
+    LAST_RAM_TEMP=$RAM_TEMP
+    LAST_WIFI_TEMP=$WIFI_TEMP
 
     # and re-read the current temperatures
-    get_temps 
+    get_temps
 
     # check the load averages
     check_load
@@ -233,6 +246,8 @@ while true ; do
 
     # wait $SLEEP_DURATION seconds and do this again
     if [ $VERBOSE == 1 ]; then
+        CURRENT_FAN_SPEED=`cat ${FAN_CTRL}`
+        echo "Current fan speed ${CURRENT_FAN_SPEED} - ${LAST_FAN_SPEED_REASON}"
         echo "waiting ${SLEEP_DURATION} seconds..."
         echo
     fi
