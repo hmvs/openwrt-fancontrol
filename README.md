@@ -6,18 +6,18 @@ A replacement for /sbin/fan_ctrl.sh, based on [this post](https://forum.openwrt.
 
 * Download the new fan controller, save it to  /etc/, and make it executable.
 ```
-wget --no-check-certificate https://raw.githubusercontent.com/jjack/openwrt-fancontrol/master/fancontrol.sh -O /etc/fancontrol.sh
+/usr/sbin/fancontrol.sh
 chmod +x fancontrol.sh
 ```
 
 * Test it to make sure that it runs correctly.
 ```
-/etc/fancontrol.sh verbose
+/usr/sbin/fancontrol.sh verbose
 ```
 
 * Let it run in the background to keep your router cool.
 ```
-/etc/fancontrol.sh &
+/usr/sbin/fancontrol.sh &
 ```
 
 ####Disable the orginal fan controller.
@@ -32,3 +32,6 @@ chmod +x fancontrol.sh
 ```
 /etc/fancontrol.sh &
 ```
+Or place fan_control into /etc/init.d/ 
+
+
