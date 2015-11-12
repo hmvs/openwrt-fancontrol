@@ -1,0 +1,15 @@
+#!/bin/sh /etc/rc.common
+
+# put in /etc/init.d/fan_control
+
+START=99
+
+PIDFILE=/var/run/fan_control_pid
+
+start() {
+    start-stop-daemon -b -S -x /usr/sbin/fancontrol.sh -m -p $PIDFILE
+}
+
+stop() {
+    start-stop-daemon -K -p $PIDFILE
+}
