@@ -201,7 +201,7 @@ while true ; do
         # do we still need to be in cooldown?
         if [ $EMERGENCY_COOLDOWN_TIMER -le 0 ]; then
 
-            set_fan EMERGENCY $LAST_FAN_SPEED
+            set_fan EMERGENCY $DEFAULT_SPEED
 
             EMERGENCY_COOLDOWN=0
 
