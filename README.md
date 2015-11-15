@@ -30,8 +30,9 @@ chmod +x fancontrol.sh
 * Have this run on boot.
 * Add this to /etc/rc.local (In LuCI, it's System > Startup)
 ```
-/etc/fancontrol.sh &
+/usr/sbin/fancontrol.sh &
 ```
+
 Or place fan_control into /etc/init.d/ 
 
 
