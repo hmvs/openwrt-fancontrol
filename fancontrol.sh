@@ -22,7 +22,7 @@ WIFI_TEMP=0
 
 # determine verbose mode
 if [ ! -z "$1" ]; then
-    VERBOSE=1
+  VERBOSE=1
 fi
 
 # determine fan controller
@@ -49,12 +49,12 @@ get_temps() {
 #     set_fan WHAT VALUE
 set_fan() {
     FAN_SPEED_REASON=$1
-    LAST_FAN_SPEED=`cat ${FAN_CTRL}`
-    if [ $2 -ge $LAST_FAN_SPEED ] || ([ $2 -le $LAST_FAN_SPEED ] && [ $FAN_SPEED_REASON == $LAST_FAN_SPEED_REASON ]); then
+    CURRENT_FAN_SPEED=`cat ${FAN_CTRL}`
+    if [ $2 -ge $CURRENT_FAN_SPEED ] || ([ $2 -le $CURRENT_FAN_SPEED ] && [ $FAN_SPEED_REASON == $LAST_FAN_SPEED_REASON ]); then
         if [ $VERBOSE == 1 ]; then
             echo "setting fan to ${2} (${FAN_SPEED_REASON}) ${FAN_CTRL}"
         fi
-
+        LAST_FAN_SPEED=$CURRENT_FAN_SPEED
         LAST_FAN_SPEED_REASON=$FAN_SPEED_REASON
         # write the new speed to the fan controller
         echo $2 > ${FAN_CTRL}
@@ -199,9 +199,9 @@ while true ; do
         EMERGENCY_COOLDOWN_TIMER=$((${EMERGENCY_COOLDOWN_TIMER} - 5))
 
         # do we still need to be in cooldown?
-        if [ $EMERGENCY_COOLDOWN_TIMER -le 0 ]; then
 
-            set_fan EMERGENCY $DEFAULT_SPEED
+        if [ $EMERGENCY_COOLDOWN_TIMER -le 0 ]; then
+            set_fan EMERGENCY $LAST_FAN_SPEED
 
             EMERGENCY_COOLDOWN=0
 
